@@ -1,7 +1,6 @@
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications import Xception
-from tensorflow.keras.applications.vgg16 import VGG16, preprocess_input
-from tensorflow.keras.models import Model
+from tensorflow.keras.applications.xception import preprocess_input
 import numpy as np
 from PIL import Image
 
@@ -10,8 +9,11 @@ from PIL import Image
 
 class FeatureExtractor:
     def __init__(self):
-        base_model = VGG16(weights='imagenet')
-        self.model = Model(inputs=base_model.input, outputs=base_model.get_layer('fc1').output)
+        self.model = Xception(
+                        weights="imagenet",
+                        classes=1000,
+                        classifier_activation="softmax",
+                        )
 
     def extract(self, img):
         """
@@ -22,7 +24,7 @@ class FeatureExtractor:
             feature (np.ndarray): deep feature with the shape=(4096, )
         """
         img = Image.open(img)
-        img = img.resize((224, 224))  # VGG must take a 224x224 img as an input
+        img = img.resize((299, 299))  # Xception must take a 299x299 img as an input
         img = img.convert('RGB')  # Make sure img is color
         x = image.img_to_array(img)  # To np.array. Height x Width x Channel. dtype=float32
         x = np.expand_dims(x, axis=0)  # (H, W, C)->(1, H, W, C), where the first elem is the number of img
