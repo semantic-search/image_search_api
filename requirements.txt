@@ -1,0 +1,10 @@
+Pillow
+mongoengine
+python-dotenv
+kafka-python
+mongoengine
+pyfiglet
+requests
+fastapi
+python-multipart
+uvicorn
