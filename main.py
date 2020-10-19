@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from feature_extractor import FeatureExtractor
 import uuid
 import base64
+import os
 
 
 fe = FeatureExtractor()
@@ -54,9 +55,18 @@ def search(file: UploadFile = File(...), skip: int = 0):
     files_b_64 = list()
     scores = list()
     documents = list()
+    grid_ids = list()
     for id in ids:
         scores.append(1 - float(dists[id]))
-        files_b_64.append(base64.b64encode(feature_ids[id].file.read()))
+        recog_file = feature_ids[id].file.read()
+        b_64_val = base64.b64encode(recog_file)
+        if b_64_val is None or not b_64_val:
+            print("********************IN EMPTY**************************************")
+            feature_ids[id].file.seek(0)
+            recog_file = feature_ids[id].file.read()
+            b_64_val = base64.b64encode(recog_file)
+        files_b_64.append(b_64_val)
+        grid_ids.append(str(feature_ids[id].id))
         cache_obj = Cache.objects.get(id=doc_ids[id])
         documents.append(str(cache_obj.file_name))
     final = {
@@ -65,5 +75,6 @@ def search(file: UploadFile = File(...), skip: int = 0):
         "scores": scores,
         "files": files_b_64
     }
+    os.remove(file_name)
     return final
 
