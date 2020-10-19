@@ -5,6 +5,7 @@ from db_models.models.file_model import FilesModel
 import pickle
 import numpy as np
 from fastapi import FastAPI, File, UploadFile, Form
+from fastapi.middleware.cors import CORSMiddleware
 from feature_extractor import FeatureExtractor
 import uuid
 import base64
@@ -12,6 +13,19 @@ import base64
 
 fe = FeatureExtractor()
 app = FastAPI()
+
+origins = [
+    "http://localhost:3000"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 global_init()
 features = list()
 feature_ids = list()
