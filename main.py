@@ -1,15 +1,15 @@
 from db_models.mongo_setup import global_init
 from db_models.models.cache_model import Cache
 from db_models.models.feature_model import Features
-from db_models.models.file_model import FilesModel
 import pickle
 import numpy as np
-from fastapi import FastAPI, File, UploadFile, Form
+from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from feature_extractor import FeatureExtractor
 import uuid
 import base64
 import os
+from fastapi.responses import FileResponse
 
 
 fe = FeatureExtractor()
@@ -33,11 +33,12 @@ feature_ids = list()
 doc_ids = list()
 
 
+print("############FETCHING IMAGE FEATURES FROM DB############")
 for feature_obj in Features.objects:
     features.append(pickle.loads(feature_obj.feature))
     feature_ids.append(feature_obj)
     doc_ids.append(feature_obj.document.id)
-
+print("############DONE############")
 
 @app.post("/search/")
 def search(file: UploadFile = File(...), skip: int = 0):
@@ -56,6 +57,7 @@ def search(file: UploadFile = File(...), skip: int = 0):
     scores = list()
     documents = list()
     grid_ids = list()
+    document_ids = list()
     for id in ids:
         scores.append(1 - float(dists[id]))
         recog_file = feature_ids[id].file.read()
@@ -69,12 +71,29 @@ def search(file: UploadFile = File(...), skip: int = 0):
         grid_ids.append(str(feature_ids[id].id))
         cache_obj = Cache.objects.get(id=doc_ids[id])
         documents.append(str(cache_obj.file_name))
+        document_ids.append(str(doc_ids[id]))
     final = {
         "total_pages": len(np_array),
         "document": documents,
+        "document_ids": document_ids,
         "scores": scores,
         "files": files_b_64
     }
     os.remove(file_name)
     return final
 
+
+def remove_file(file):
+    """Fast API Background task"""
+    os.remove(file)
+
+
+@app.post("/download/")
+def download(file_id: str, background_tasks: BackgroundTasks):
+    cache_obj = Cache.objects.get(id=file_id)
+    extension = cache_obj.mime_type
+    new_file_to_download = str(uuid.uuid4()) + "." + extension
+    with open(new_file_to_download, 'wb') as f:
+        f.write(cache_obj.file.read())
+    background_tasks.add_task(remove_file, new_file_to_download)
+    return FileResponse(new_file_to_download)
