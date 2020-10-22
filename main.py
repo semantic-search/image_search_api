@@ -10,13 +10,15 @@ import uuid
 import base64
 import os
 from fastapi.responses import FileResponse
+import globals
 
 
 fe = FeatureExtractor()
 app = FastAPI()
 
+
 origins = [
-    "http://localhost:3000"
+    globals.CORS_ORIGIN
 ]
 
 app.add_middleware(
@@ -39,6 +41,7 @@ for feature_obj in Features.objects:
     feature_ids.append(feature_obj)
     doc_ids.append(feature_obj.document.id)
 print("############DONE############")
+
 
 @app.post("/search/")
 def search(file: UploadFile = File(...), skip: int = 0):
@@ -88,7 +91,7 @@ def remove_file(file):
     os.remove(file)
 
 
-@app.post("/download/")
+@app.get("/download/{file_id}")
 def download(file_id: str, background_tasks: BackgroundTasks):
     cache_obj = Cache.objects.get(id=file_id)
     extension = cache_obj.mime_type
