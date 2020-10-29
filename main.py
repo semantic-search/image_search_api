@@ -3,13 +3,12 @@ from db_models.models.cache_model import Cache
 from db_models.models.feature_model import Features
 import pickle
 import numpy as np
-from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks
+from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from feature_extractor import FeatureExtractor
 import uuid
 import base64
 import os
-from fastapi.responses import FileResponse
 import globals
 
 
@@ -84,19 +83,3 @@ def search(file: UploadFile = File(...), skip: int = 0):
     }
     os.remove(file_name)
     return final
-
-
-def remove_file(file):
-    """Fast API Background task"""
-    os.remove(file)
-
-
-@app.get("/download/{file_id}")
-def download(file_id: str, background_tasks: BackgroundTasks):
-    cache_obj = Cache.objects.get(id=file_id)
-    extension = cache_obj.mime_type
-    new_file_to_download = str(uuid.uuid4()) + "." + extension
-    with open(new_file_to_download, 'wb') as f:
-        f.write(cache_obj.file.read())
-    background_tasks.add_task(remove_file, new_file_to_download)
-    return FileResponse(new_file_to_download)
